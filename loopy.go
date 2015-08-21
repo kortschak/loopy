@@ -40,6 +40,9 @@ var (
     	false is useful to reconstruct output from fasta input
     	and loopy .blasr outputs`,
 	)
+
+	outFile = flag.String("out", "", "output file name (default to stdout)")
+	errFile = flag.String("err", "", "output file name (default to stderr)")
 )
 
 func main() {
@@ -48,6 +51,24 @@ func main() {
 		fmt.Fprintln(os.Stderr, "invalid argument: must have reads, reference and block size set")
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	if *errFile != "" {
+		w, err := os.Create(*errFile)
+		if err != nil {
+			// Oh, the irony.
+			log.Fatalf("failed to create log file: %v", err)
+		}
+		defer w.Close()
+		log.SetOutput(w)
+	}
+	outStream := os.Stdout
+	if *outFile != "" {
+		outStream, err := os.Create(*errFile)
+		if err != nil {
+			log.Fatalf("failed to create out file: %v", err)
+		}
+		defer outStream.Close()
 	}
 
 	log.Printf("finding flanks of reads in %q", *reads)
@@ -88,7 +109,7 @@ func main() {
 		w = gff.NewWriter(f, 60, true)
 		defer f.Close()
 	}
-	err = writeResults(core, left, right, os.Stdout, *length, *flank, w)
+	err = writeResults(core, left, right, outStream, *length, *flank, w)
 	if err != nil {
 		log.Fatalf("failed to write results: %v", err)
 	}
