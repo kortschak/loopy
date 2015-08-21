@@ -45,6 +45,11 @@ var (
 	errFile = flag.String("err", "", "output file name (default to stderr)")
 )
 
+var (
+	outStream = os.Stdout
+	errStream = os.Stderr
+)
+
 func main() {
 	flag.Parse()
 	if *reads == "" || *ref == "" {
@@ -60,11 +65,12 @@ func main() {
 			log.Fatalf("failed to create log file: %v", err)
 		}
 		defer w.Close()
+		errStream = w
 		log.SetOutput(w)
 	}
-	outStream := os.Stdout
 	if *outFile != "" {
-		outStream, err := os.Create(*errFile)
+		var err error
+		outStream, err = os.Create(*errFile)
 		if err != nil {
 			log.Fatalf("failed to create out file: %v", err)
 		}
@@ -140,8 +146,8 @@ func hitSetFrom(reads, ref, suff string, procs int, run bool) (hitSet, error) {
 		if err != nil {
 			return nil, err
 		}
-		cmd.Stdout = os.Stderr
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = errStream
+		cmd.Stderr = errStream
 		err = cmd.Run()
 		if err != nil {
 			return nil, err
