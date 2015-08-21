@@ -58,19 +58,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	var err error
 	if *errFile != "" {
-		w, err := os.Create(*errFile)
+		errStream, err = os.Create(*errFile)
 		if err != nil {
 			// Oh, the irony.
 			log.Fatalf("failed to create log file: %v", err)
 		}
-		defer w.Close()
-		errStream = w
-		log.SetOutput(w)
+		defer errStream.Close()
+		log.SetOutput(errStream)
 	}
 	if *outFile != "" {
-		var err error
-		outStream, err = os.Create(*errFile)
+		outStream, err = os.Create(*outFile)
 		if err != nil {
 			log.Fatalf("failed to create out file: %v", err)
 		}
