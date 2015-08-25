@@ -333,11 +333,15 @@ func gapOrOverlap(flank, core *blasrHit, cutoff int) []*gff.Feature {
 	f := make([]*gff.Feature, 0, 2)
 	if qGapEnd-qGapStart >= cutoff {
 		f = append(f, &gff.Feature{
-			SeqName:    flank.tName,
-			Feature:    "insertion",
-			Source:     "loopy",
-			FeatStart:  tGapStart,
-			FeatEnd:    tGapEnd,
+			SeqName:   flank.tName,
+			Feature:   "insertion",
+			Source:    "loopy",
+			FeatStart: tGapStart,
+
+			// We may have a zero-length feature, but GFF is
+			// broken by design, so paper over that here.
+			FeatEnd: max(tGapEnd, tGapStart+1),
+
 			FeatStrand: flank.qStrand,
 			FeatFrame:  gff.NoFrame,
 			FeatAttributes: gff.Attributes{{
@@ -358,6 +362,13 @@ func gapOrOverlap(flank, core *blasrHit, cutoff int) []*gff.Feature {
 		})
 	}
 	return f
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 const (
