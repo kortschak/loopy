@@ -34,8 +34,9 @@ var (
     	and reefer .blasr outputs`,
 	)
 
-	outFile = flag.String("out", "", "output file name (default to stdout)")
-	errFile = flag.String("err", "", "output file name (default to stderr)")
+	discords = flag.Bool("discords", false, "output GFF file of discordant features")
+	outFile  = flag.String("out", "", "output file name (default to stdout)")
+	errFile  = flag.String("err", "", "output file name (default to stderr)")
 )
 
 var (
@@ -69,8 +70,18 @@ func main() {
 		defer outStream.Close()
 	}
 
+	var w *gff.Writer
+	if *discords {
+		out := filepath.Base(*reads)
+		f, err := os.Create(out + ".gff")
+		if err != nil {
+			log.Fatalf("failed to create GFF outfile: %q", out+".gff")
+		}
+		w = gff.NewWriter(f, 60, true)
+		defer f.Close()
+	}
 	log.Printf("finding alignments for reads in %q", *reads)
-	err = deletions(*reads, *ref, *suff, *procs, *run, *window, *min, outStream)
+	err = deletions(*reads, *ref, *suff, *procs, *run, *window, *min, w)
 	if err != nil {
 		log.Fatalf("failed mapping: %v", err)
 	}
@@ -80,7 +91,7 @@ func main() {
 // using the suffix array file if provided. If run is false, blasr is not
 // run and the existing blasr output is used to reconstruct the []*sam.Record.
 // procs specifies the number of blasr threads to use.
-func deletions(reads, ref, suff string, procs int, run bool, window, min int, w io.Writer) error {
+func deletions(reads, ref, suff string, procs int, run bool, window, min int, w *gff.Writer) error {
 	base := filepath.Base(reads)
 	b := blasr.BLASR{
 		Cmd: *blasrPath,
@@ -132,9 +143,14 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 		sam.CigarBack: 0,
 	}
 
-	gw := gff.NewWriter(w, 60, true)
-	gw.WriteComment(fmt.Sprintf("smoothing window=%d", window))
-	gw.WriteComment(fmt.Sprintf("minimum feature length=%d", min))
+	_, err = w.WriteComment(fmt.Sprintf("smoothing window=%d", window))
+	if err != nil {
+		return nil
+	}
+	_, err = w.WriteComment(fmt.Sprintf("minimum feature length=%d", min))
+	if err != nil {
+		return nil
+	}
 	gf := &gff.Feature{
 		Source:         "reefer",
 		Feature:        "discordance",
@@ -199,7 +215,10 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 					gf.FeatStart = d.rstart
 					gf.FeatEnd = d.rend
 					gf.FeatAttributes[0].Value = fmt.Sprintf("%s %d %d", d.record.Name, feat.ZeroToOne(d.qstart), d.qend)
-					gw.Write(gf)
+					_, err = w.Write(gf)
+					if err != nil {
+						return nil
+					}
 				}
 				d.record = nil
 			}
