@@ -7,6 +7,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -158,7 +160,7 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 		FeatAttributes: gff.Attributes{{Tag: "Read"}},
 	}
 
-	sr, err := sam.NewReader(f)
+	sr, err := sam.NewReader(newPbFixReader(f))
 	if err != nil {
 		return err
 	}
@@ -244,4 +246,34 @@ func mean(c []costPos) costPos {
 	mean.ref = int(float64(mean.ref)/scale + 0.5)
 	mean.query = int(float64(mean.query)/scale + 0.5)
 	return mean
+}
+
+// pbFixReader papers over https://github.com/PacificBiosciences/blasr_libcpp/issues/97
+type pbFixReader struct {
+	r     *bufio.Reader
+	clean bool
+
+	buf []byte
+}
+
+func newPbFixReader(r io.Reader) *pbFixReader {
+	return &pbFixReader{r: bufio.NewReader(r)}
+}
+
+func (r *pbFixReader) Read(p []byte) (int, error) {
+	if r.clean {
+		return r.r.Read(p)
+	}
+	var err error
+	if r.buf == nil {
+		r.buf, err = r.r.ReadSlice('\n')
+		i := bytes.Index(r.buf, []byte("\tpb:"))
+		if i >= 0 {
+			r.buf = append(r.buf[:i], '\n')
+		}
+	}
+	n := copy(p, r.buf)
+	r.buf = r.buf[n:]
+	r.clean = len(r.buf) == 0
+	return n, err
 }
