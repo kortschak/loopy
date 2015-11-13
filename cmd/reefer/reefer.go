@@ -87,9 +87,9 @@ func main() {
 	}
 }
 
-// deletions returns a []*sam.Record from mapping reads to the given reference
+// deletions analyses *sam.Records from mapping reads to the given reference
 // using the suffix array file if provided. If run is false, blasr is not
-// run and the existing blasr output is used to reconstruct the []*sam.Record.
+// run and the existing blasr output is used to provide the *sam.Records.
 // procs specifies the number of blasr threads to use.
 func deletions(reads, ref, suff string, procs int, run bool, window, min int, w *gff.Writer) error {
 	base := filepath.Base(reads)
