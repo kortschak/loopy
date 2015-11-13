@@ -25,6 +25,8 @@ import (
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq"
 	"github.com/biogo/biogo/seq/linear"
+
+	"github.com/kortschak/loopy/blasr"
 )
 
 var (
@@ -129,7 +131,7 @@ type hitSet map[string]*blasrHit
 // procs specifies the number of blasr threads to use.
 func hitSetFrom(reads, ref, suff string, procs int, run bool) (hitSet, error) {
 	base := filepath.Base(reads)
-	b := BLASR{
+	b := blasr.BLASR{
 		Cmd: *blasrPath,
 
 		Reads: reads, Genome: ref, SuffixArray: suff,
