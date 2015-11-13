@@ -31,7 +31,7 @@ var (
 	min       = flag.Int("min", 300, "minimum feature size")
 	run       = flag.Bool("run-blasr", true, `actually run blasr
     	false is useful to reconstruct output from fasta input
-    	and loopy .blasr outputs`,
+    	and reefer .blasr outputs`,
 	)
 
 	outFile = flag.String("out", "", "output file name (default to stdout)")
