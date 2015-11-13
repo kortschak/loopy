@@ -105,7 +105,7 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 		CIGARSeqMatch: true,
 
 		Aligned:   base + ".blasr.sam",
-		Unaligned: base + ".blasr.unmapped.sam",
+		Unaligned: base + ".blasr.unmapped.fasta",
 
 		Procs: procs,
 	}
