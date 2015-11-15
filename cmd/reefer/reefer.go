@@ -18,6 +18,7 @@ import (
 
 	"github.com/biogo/biogo/feat"
 	"github.com/biogo/biogo/io/featio/gff"
+	"github.com/biogo/biogo/seq"
 	"github.com/biogo/hts/sam"
 
 	"github.com/kortschak/loopy/blasr"
@@ -216,6 +217,11 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 					gf.SeqName = d.record.Ref.Name()
 					gf.FeatStart = d.rstart
 					gf.FeatEnd = d.rend
+					gf.FeatStrand = strandFor(d.record)
+					if gf.FeatStrand == seq.Minus {
+						len := d.record.Seq.Length
+						d.qstart, d.qend = len-d.qend, len-d.qstart
+					}
 					gf.FeatAttributes[0].Value = fmt.Sprintf("%s %d %d", d.record.Name, feat.ZeroToOne(d.qstart), d.qend)
 					_, err = w.Write(gf)
 					if err != nil {
@@ -246,6 +252,13 @@ func mean(c []costPos) costPos {
 	mean.ref = int(float64(mean.ref)/scale + 0.5)
 	mean.query = int(float64(mean.query)/scale + 0.5)
 	return mean
+}
+
+func strandFor(r *sam.Record) seq.Strand {
+	if r.Flags&sam.Reverse != 0 {
+		return seq.Minus
+	}
+	return seq.Plus
 }
 
 // pbFixReader papers over https://github.com/PacificBiosciences/blasr_libcpp/issues/97
