@@ -83,19 +83,21 @@ func main() {
 			delete(extract, r.Name)
 
 			reverse := r.Flags&sam.Reverse != 0
-			desc := fmt.Sprintf("[%d,%d)", v[0], v[1])
+			rng := fmt.Sprintf("//%d_%d", v[0], v[1])
 			if reverse {
-				desc += " (sequence revcomp relative to read)"
+				rng += "(-)"
 				len := r.Seq.Length
 				v[0], v[1] = len-v[1], len-v[0]
 			}
 			v[0] = feat.OneToZero(v[0])
 			s := linear.NewSeq(
-				r.Name,
+				r.Name+rng,
 				alphabet.BytesToLetters(r.Seq.Expand())[v[0]:v[1]],
 				alphabet.DNA,
 			)
-			s.Desc = desc
+			if reverse {
+				s.Desc = "(sequence revcomp relative to read)"
+			}
 			fmt.Printf("%60a\n", s)
 		}
 		sf.Close()
