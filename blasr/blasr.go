@@ -6,11 +6,8 @@
 package blasr
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os/exec"
 	"sort"
 	"strings"
@@ -140,38 +137,4 @@ func holes(a interface{}) string {
 	}
 
 	return strings.Join(s, ",")
-}
-
-// PBFixReader is an io.Reader that removes the first instance of "\tpb:.*\n".
-// It is required to paper over https://github.com/PacificBiosciences/blasr_libcpp/issues/97.
-type PBFixReader struct {
-	r     *bufio.Reader
-	clean bool
-
-	buf []byte
-}
-
-// NewPBFixReader returns a new PBFixReader using r. The provided io.Reader
-// is wrapped in a bufio.Reader.
-func NewPBFixReader(r io.Reader) *PBFixReader {
-	return &PBFixReader{r: bufio.NewReader(r)}
-}
-
-// Read implements the io.Reader interface.
-func (r *PBFixReader) Read(p []byte) (int, error) {
-	if r.clean {
-		return r.r.Read(p)
-	}
-	var err error
-	if r.buf == nil {
-		r.buf, err = r.r.ReadSlice('\n')
-		i := bytes.Index(r.buf, []byte("\tpb:"))
-		if i >= 0 {
-			r.buf = append(r.buf[:i], '\n')
-		}
-	}
-	n := copy(p, r.buf)
-	r.buf = r.buf[n:]
-	r.clean = len(r.buf) == 0
-	return n, err
 }

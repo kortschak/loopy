@@ -35,13 +35,7 @@ var (
     	and reefer .blasr outputs`,
 	)
 
-	discords = flag.Bool("discords", false, "output GFF file of discordant features")
-	outFile  = flag.String("out", "", "output file name (default to stdout)")
-	errFile  = flag.String("err", "", "output file name (default to stderr)")
-)
-
-var (
-	outStream = os.Stdout
+	errFile   = flag.String("err", "", "output file name (default to stderr)")
 	errStream = os.Stderr
 )
 
@@ -63,24 +57,14 @@ func main() {
 		defer errStream.Close()
 		log.SetOutput(errStream)
 	}
-	if *outFile != "" {
-		outStream, err = os.Create(*outFile)
-		if err != nil {
-			log.Fatalf("failed to create out file: %v", err)
-		}
-		defer outStream.Close()
-	}
 
-	var w *gff.Writer
-	if *discords {
-		out := filepath.Base(*reads)
-		f, err := os.Create(out + ".gff")
-		if err != nil {
-			log.Fatalf("failed to create GFF outfile: %q", out+".gff")
-		}
-		w = gff.NewWriter(f, 60, true)
-		defer f.Close()
+	out := filepath.Base(*reads)
+	f, err := os.Create(out + ".gff")
+	if err != nil {
+		log.Fatalf("failed to create GFF outfile: %q", out+".gff")
 	}
+	w := gff.NewWriter(f, 60, true)
+	defer f.Close()
 	log.Printf("finding alignments for reads in %q", *reads)
 	err = deletions(*reads, *ref, *suff, *procs, *run, *window, *min, w)
 	if err != nil {
@@ -159,7 +143,7 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 		FeatAttributes: gff.Attributes{{Tag: "Read"}},
 	}
 
-	sr, err := sam.NewReader(blasr.NewPBFixReader(f))
+	sr, err := sam.NewReader(f)
 	if err != nil {
 		return err
 	}
