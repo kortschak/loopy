@@ -55,34 +55,6 @@ Generic case:
 
 # Invoked by:
 #
-# READPATH=<read> REPLIBPATH=<lib> sbatch censor-arb.q
-#
-
-#SBATCH -p cpuq
-#SBATCH -N 1
-#SBATCH -n 16
-#SBATCH --time=2-00:00
-#SBATCH --mem=32GB
-
-# Notification configuration
-#SBATCH --mail-type=END
-#SBATCH --mail-type=FAIL
-#SBATCH --mail-user=email@domain.net
-
-#SBATCH --array=0-8 #result of `ls *.fa | wc -l' less one.
-
-module load wu-blast censor bioperl
-
-FILES=($(ls $READPATH/*.fa))
-censor -bprm cpus=16 -lib ${REPLIBPATH} $READPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
-```
-
-L1 case:
-```bash
-#!/bin/bash
-
-# Invoked by:
-#
 # READPATH=<read> sbatch censor-hum.q
 #
 
@@ -103,6 +75,34 @@ module load wu-blast censor bioperl
 
 FILES=($(ls $READPATH/*.fa))
 censor -bprm cpus=8 -lib hum $READPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
+```
+
+L1 case:
+```bash
+#!/bin/bash
+
+# Invoked by:
+#
+# READPATH=<read> REPLIBPATH=<lib> sbatch censor-arb.q
+#
+
+#SBATCH -p cpuq
+#SBATCH -N 1
+#SBATCH -n 16
+#SBATCH --time=2-00:00
+#SBATCH --mem=32GB
+
+# Notification configuration
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=email@domain.net
+
+#SBATCH --array=0-8 #result of `ls *.fa | wc -l' less one.
+
+module load wu-blast censor bioperl
+
+FILES=($(ls $READPATH/*.fa))
+censor -bprm cpus=16 -lib ${REPLIBPATH} $READPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
 ```
 
 ## Filter events for size
