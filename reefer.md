@@ -125,6 +125,8 @@ mangle -unmangle LCYE01.reefer-mangled.$TYPE.map <LCYE01.reefer-mangled.fasta > 
 
 ## Convert to GFF
 
+map2gff is available by invoking `go get github.com/kortschak/quilt/map2gff`.
+
 General case:
 ```
 map2gff -lib $REPLIBPATH <LCYE01.reefer-unmangled.all.map >LCYE01.reefer-unmangled.all.gff
