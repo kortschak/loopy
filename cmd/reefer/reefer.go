@@ -17,6 +17,7 @@ import (
 	"github.com/biogo/biogo/feat"
 	"github.com/biogo/biogo/io/featio/gff"
 	"github.com/biogo/biogo/seq"
+	"github.com/biogo/hts/bam"
 	"github.com/biogo/hts/sam"
 
 	"github.com/kortschak/loopy/blasr"
@@ -26,6 +27,7 @@ var (
 	reads     = flag.String("reads", "", "input fasta sequence read file name (required)")
 	ref       = flag.String("reference", "", "input reference sequence file name (required)")
 	suff      = flag.String("suff", "", "input reference suffix array path")
+	useBam    = flag.Bool("bam", false, "use bam file inputs if not running blasr")
 	blasrPath = flag.String("blasr", "", "path to blasr if not in $PATH")
 	procs     = flag.Int("procs", 1, "number of blasr threads")
 	window    = flag.Int("window", 50, "smoothing window")
@@ -66,7 +68,11 @@ func main() {
 	w := gff.NewWriter(f, 60, true)
 	defer f.Close()
 	log.Printf("finding alignments for reads in %q", *reads)
-	err = deletions(*reads, *ref, *suff, *procs, *run, *window, *min, w)
+	ext := "sam"
+	if *useBam && !*run {
+		ext = "bam"
+	}
+	err = deletions(*reads, *ref, *suff, ext, *procs, *run, *window, *min, w)
 	if err != nil {
 		log.Fatalf("failed mapping: %v", err)
 	}
@@ -76,7 +82,7 @@ func main() {
 // using the suffix array file if provided. If run is false, blasr is not
 // run and the existing blasr output is used to provide the *sam.Records.
 // procs specifies the number of blasr threads to use.
-func deletions(reads, ref, suff string, procs int, run bool, window, min int, w *gff.Writer) error {
+func deletions(reads, ref, suff, ext string, procs int, run bool, window, min int, w *gff.Writer) error {
 	base := filepath.Base(reads)
 	b := blasr.BLASR{
 		Cmd: *blasrPath,
@@ -89,7 +95,7 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 		SAMQV:         true,
 		CIGARSeqMatch: true,
 
-		Aligned:   base + ".blasr.sam",
+		Aligned:   base + ".blasr." + ext,
 		Unaligned: base + ".blasr.unmapped.fasta",
 
 		Procs: procs,
@@ -142,10 +148,25 @@ func deletions(reads, ref, suff string, procs int, run bool, window, min int, w 
 		FeatFrame:      gff.NoFrame,
 		FeatAttributes: gff.Attributes{{Tag: "Read"}},
 	}
-
-	sr, err := sam.NewReader(f)
-	if err != nil {
-		return err
+	var sr interface {
+		Read() (*sam.Record, error)
+	}
+	switch ext {
+	case "sam":
+		sr, err = sam.NewReader(f)
+		if err != nil {
+			return err
+		}
+	case "bam":
+		var br *bam.Reader
+		br, err = bam.NewReader(f, 0)
+		if err != nil {
+			return err
+		}
+		defer br.Close()
+		sr = br
+	default:
+		panic("reefer: invalid extension")
 	}
 	for {
 		r, err := sr.Read()
