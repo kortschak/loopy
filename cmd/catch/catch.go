@@ -45,8 +45,9 @@ func (v *mat) Set(s string) error {
 func (v *mat) String() string { return fmt.Sprintf("%d,%d,%d", v[0], v[1], v[2]) }
 
 var (
-	in     = flag.String("in", "", "specify input gff file (required)")
-	thresh = flag.Int("thresh", 6, "specify minimum TSD half alignment length (ungapped)")
+	in       = flag.String("in", "", "specify input gff file (required)")
+	thresh   = flag.Int("thresh", 6, "specify minimum TSD half alignment length (ungapped)")
+	fastaOut = flag.String("fasta-out", "", "write insertions to this file if option not empty")
 )
 
 func main() {
@@ -79,6 +80,15 @@ func main() {
 	w := gff.NewWriter(os.Stdout, 60, true)
 	w.WriteComment("Right coordinates (field 5) and strand (field 7) are hypothetical.")
 
+	var out *os.File
+	if *fastaOut != "" {
+		out, err = os.Create(*fastaOut)
+		if err != nil {
+			log.Fatalf("failed to create fasta insertion output file %q: %v", *fastaOut, err)
+		}
+		defer out.Close()
+	}
+
 	sw := makeTable(alphabet.DNAgapped, 1, -2, -3)
 	for _, ref := range flag.Args() {
 		f, err = os.Open(ref)
@@ -102,6 +112,17 @@ func main() {
 				if err != nil {
 					log.Fatalf("failed to get end coordinate: %v", err)
 				}
+
+				if out != nil {
+					insert := *seq
+					if insert.Desc != "" {
+						insert.Desc += " "
+					}
+					insert.Desc += fmt.Sprint("[%d,%d)", start, end)
+					insert.Seq = insert.Seq[start:end]
+					fmt.Fprintf(out, "%60a\n", &insert)
+				}
+
 				left := *seq
 				left.ID = "prefix"
 				left.Seq = left.Seq[max(0, start-50):min(len(left.Seq), start+50)]
