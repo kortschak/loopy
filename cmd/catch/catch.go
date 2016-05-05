@@ -118,7 +118,7 @@ func main() {
 					if insert.Desc != "" {
 						insert.Desc += " "
 					}
-					insert.Desc += fmt.Sprint("[%d,%d)", start, end)
+					insert.Desc += fmt.Sprintf("[%d,%d)", start, end)
 					insert.Seq = insert.Seq[start:end]
 					fmt.Fprintf(out, "%60a\n", &insert)
 				}
