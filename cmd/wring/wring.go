@@ -19,8 +19,6 @@ import (
 	"github.com/biogo/biogo/io/featio/gff"
 	"github.com/biogo/biogo/seq/linear"
 	"github.com/biogo/hts/sam"
-
-	"github.com/kortschak/loopy/blasr"
 )
 
 func main() {
@@ -59,7 +57,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to open %q: %v", reads, err)
 		}
-		sr, err := sam.NewReader(blasr.NewPBFixReader(sf))
+		sr, err := sam.NewReader(sf)
 		if err != nil {
 			log.Fatalf("failed to open SAM input %q: %v", reads, err)
 		}
