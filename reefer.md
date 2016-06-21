@@ -22,17 +22,42 @@ reefer	-reads ${READPATH}/${FILES[$SLURM_ARRAY_TASK_ID]} \
      	-suff ${REF}.sa \
      	-procs 8 \
      	-blasr $BLASR \
-     	-discords \
      	-min 250 \
-     	-out ${FILES[$SLURM_ARRAY_TASK_ID]}.out \
      	-err ${FILES[$SLURM_ARRAY_TASK_ID]}.log
 ```
 
 ## Obtain sequence discordances
 
+```
+head -n 3 $(ls -1 | head -n 1) >${REEFERRESULTS}.gff
+grep --no-filename results/*gff >>${REEFERRESULTS}.gff
+```
+
 This is horribly inefficient, but easy to express. A better approach is to do each invocation of wring on a distinct pair of gff/sam and concatenate the results.
 ```
-cat results/*gff | wring results/*sam >LCYE01.reefer.fasta
+wring results/*sam <${REEFERRESULTS}.gff >LCYE01.reefer.fasta
+```
+
+better
+```
+#!/bin/bash
+#SBATCH -p batch
+#SBATCH -N 1
+#SBATCH -n 8
+#SBATCH --time=20:00
+#SBATCH --mem=4G
+
+#SBATCH --mail-type=END 
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=dan.kortschak@adelaide.edu.au
+
+#SBATCH --array=0-837 # result of `ls *fasta | wc -l' less one.
+
+FILES=($(ls $READPATH/*.gff))
+file=$(basename ${FILES[$SLURM_ARRAY_TASK_ID]} .gff)
+wring	${file}.blasr.sam \
+     	< ${file}.gff \
+     	> ${file}.reefer.fasta
 ```
 
 ## Perform name mangling
@@ -134,7 +159,7 @@ map2gff -lib $REPLIBPATH <LCYE01.reefer-unmangled.all.map >LCYE01.reefer-unmangl
 
 L1 case (only allow 3' abutting elements):
 ```
-map2gff -lib $REPLIBPATH <LCYE01.reefer-unmangled.L1.map | awk '{if ($14 < 100) print $0}' >LCYE01.reefer-unmangled.L1.gff
+map2gff -lib $REPLIBPATH -class L1 <LCYE01.reefer-unmangled.L1.map | awk '{if ($14 < 100) print $0}' >LCYE01.reefer-unmangled.L1.gff
 ```
 
 ## Integrate results
@@ -148,7 +173,7 @@ rinse -in LCYE01.reefer-unmangled.$TYPE.gff -ref LYCE01.rm.gff -map LCYE01.reefe
 Provides read provenance and accounts unique events.
 
 ```
-press -in LCYE01.reefer-unmangled-rinsed.$TYPE.gff -ref $REF -gff LCYE01.reefer-unmangled-rinsed.pressed.$TYPE.gff
+press -in LCYE01.reefer-unmangled-rinsed.$TYPE.gff -ref ${REEFERRESULTS}.gff -gff LCYE01.reefer-unmangled-rinsed.pressed.$TYPE.gff
 ```
 
 ## Find Target Site Duplications
