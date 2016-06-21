@@ -23,7 +23,10 @@ import (
 	"github.com/biogo/biogo/seq/linear"
 )
 
-var apply = flag.String("unmangle", "", "apply the inverse name mangling to the specified map file")
+var (
+	apply          = flag.String("unmangle", "", "apply the inverse name mangling to the specified map/out file")
+	queryNameField = flag.Int("name-field", 0, "specify the name field of the map/out file to unmangle")
+)
 
 func main() {
 	flag.Parse()
@@ -56,24 +59,6 @@ func mangle() {
 	}
 }
 
-const (
-	queryNameField = iota
-
-	_ // queryStartField
-	_ // queryEndField
-	_ // repeatTypeField
-	_ // repeatStartField
-	_ // repeatEndField
-	_ // strandField
-	_ // alignment similarity
-	_ // alignment positive fraction
-	_ // scoreField
-	_ // query coverage fraction - not used because we need class name anyway.
-	_ // repeat coverage fraction - not used because we need class name anyway.
-
-	numberOfFields
-)
-
 func unmangle(mapfile string) {
 	table := make(map[string]string)
 	sc := seqio.NewScanner(fasta.NewReader(os.Stdin, linear.NewSeq("", nil, alphabet.DNA)))
@@ -94,14 +79,14 @@ func unmangle(mapfile string) {
 	for s.Scan() {
 		line := s.Text()
 		fields := strings.Fields(line)
-		if len(fields) != numberOfFields {
+		if len(fields) <= *queryNameField {
 			log.Fatalf("unexpected number of fields in line %q", line)
 		}
-		id := table[fields[0]]
+		id := table[fields[*queryNameField]]
 		if id == "" {
-			log.Fatalf("no id for map query %s", fields[0])
+			log.Fatalf("no id for map query %s", fields[*queryNameField])
 		}
-		fields[0] = id
+		fields[*queryNameField] = id
 		for i, f := range fields {
 			if i != 0 {
 				fmt.Print("\t")
