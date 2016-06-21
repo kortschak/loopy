@@ -45,8 +45,9 @@ func (v *mat) Set(s string) error {
 func (v *mat) String() string { return fmt.Sprintf("%d,%d,%d", v[0], v[1], v[2]) }
 
 var (
-	in       = flag.String("in", "", "specify input gff file (required)")
-	thresh   = flag.Int("thresh", 6, "specify minimum TSD half alignment length (ungapped)")
+	in       = flag.String("in", "", "input gff file (required)")
+	thresh   = flag.Int("thresh", 6, "minimum TSD half alignment length (ungapped)")
+	window   = flag.Int("window", 200, "window for TSD search")
 	fastaOut = flag.String("fasta-out", "", "write insertions to this file if option not empty")
 )
 
@@ -89,6 +90,7 @@ func main() {
 		defer out.Close()
 	}
 
+	hw := *window / 2
 	sw := makeTable(alphabet.DNAgapped, alnmat)
 	for _, ref := range flag.Args() {
 		f, err = os.Open(ref)
@@ -123,17 +125,30 @@ func main() {
 					fmt.Fprintf(out, "%60a\n", &insert)
 				}
 
+				lOff := max(0, start-hw)
+				lEnd := min(len(seq.Seq), start+hw)
+				rOff := max(0, end-hw)
+				rEnd := min(len(seq.Seq), end+hw)
+
+				// Ensure windows don't overlap.
+				if lEnd > rOff {
+					lEnd = (lEnd + rOff) / 2
+					rOff = lEnd
+				}
+
 				left := *seq
 				left.ID = "prefix"
-				left.Seq = left.Seq[max(0, start-50):min(len(left.Seq), start+50)]
+				left.Seq = left.Seq[lOff:lEnd]
 				right := *seq
 				right.ID = "postfix"
-				right.Seq = right.Seq[max(0, end-50):min(len(right.Seq), end+50)]
-				aln, err := sw.Align(&left, &right)
+				right.Seq = right.Seq[rOff:rEnd]
+
+				aln, err := sw.Align(&right, &left)
 				if err != nil {
 					log.Fatal(err)
 				}
-				fa := align.Format(&left, &right, aln, '-')
+
+				fa := align.Format(&right, &left, aln, '-')
 				var n int
 				for _, seg := range fa {
 					for _, l := range seg.(alphabet.Letters) {
@@ -145,6 +160,7 @@ func main() {
 						continue loop
 					}
 				}
+
 				var sc int
 				for _, seg := range aln {
 					type scorer interface {
