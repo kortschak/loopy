@@ -89,7 +89,7 @@ func main() {
 		defer out.Close()
 	}
 
-	sw := makeTable(alphabet.DNAgapped, 1, -2, -3)
+	sw := makeTable(alphabet.DNAgapped, alnmat)
 	for _, ref := range flag.Args() {
 		f, err = os.Open(ref)
 		if err != nil {
@@ -165,7 +165,10 @@ func main() {
 	}
 }
 
-func makeTable(alpha alphabet.Alphabet, match, mismatch, gap int) align.SW {
+func makeTable(alpha alphabet.Alphabet, alnmat mat) align.SW {
+	match := alnmat[0]
+	mismatch := alnmat[1]
+	gap := alnmat[2]
 	sw := make(align.SW, alpha.Len())
 	for i := range sw {
 		row := make([]int, alpha.Len())
