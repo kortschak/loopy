@@ -169,7 +169,10 @@ func main() {
 					sc += seg.(scorer).Score()
 				}
 				f.FeatAttributes = append(f.FeatAttributes, gff.Attribute{
-					Tag: "TSD", Value: fmt.Sprintf("%v %v \"%v\" %d", fa[0], fa[1], aln, sc),
+					Tag: "TSD", Value: fmt.Sprintf(`%v %d %d %v "%v" %d`,
+						fa[0], aln[len(aln)-1].Features()[0].End()+lOff,
+						aln[0].Features()[1].Start()+rOff, fa[1],
+						aln, sc),
 				})
 				w.Write(f)
 			}
