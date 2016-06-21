@@ -168,7 +168,7 @@ map2gff -lib $REPLIBPATH -class L1 <LCYE01.reefer-unmangled.L1.map | awk '{if ($
 rinse -in LCYE01.reefer-unmangled.$TYPE.gff -ref LYCE01.rm.gff -map LCYE01.reefer.gff -contigs LCYE01.mfa >LCYE01.reefer-unmangled-rinsed.$TYPE.gff
 ```
 
-## Anntotate repeat locations on reference
+## Annotate repeat locations on reference
 
 Provides read provenance and accounts unique events.
 
