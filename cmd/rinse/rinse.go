@@ -76,7 +76,10 @@ func main() {
 		}
 		fields := strings.Fields(repeat)
 
-		contigSide := mapping[strings.Split(f.SeqName, "//")[0]]
+		contigSide, ok := mapping[strings.Split(f.SeqName, "//")[0]]
+		if !ok {
+			log.Fatalf("unexpected sequence name in input: %q", f.SeqName)
+		}
 		if contigSide.FeatStart < *buf || contigLength[contigSide.SeqName]-contigSide.FeatEnd < *buf {
 			log.Printf("too close to contig end: excluding %+v", f)
 			continue
