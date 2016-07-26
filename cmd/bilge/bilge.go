@@ -53,7 +53,7 @@ func main() {
 		c, _ := cfn(seq, seq.Start(), seq.End())
 
 		if *dist {
-			fmt.Printf("%s\t%v\n", seq.Name(), c)
+			fmt.Printf("%s\t%v\t%d\n", seq.Name(), c, seq.Len())
 			continue
 		}
 		if c >= *thresh {
