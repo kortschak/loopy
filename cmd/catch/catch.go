@@ -125,15 +125,33 @@ func main() {
 					fmt.Fprintf(out, "%60a\n", &insert)
 				}
 
-				lOff := max(0, start-hw)
-				lEnd := min(len(seq.Seq), start+hw)
-				rOff := max(0, end-hw)
-				rEnd := min(len(seq.Seq), end+hw)
+				var lOff, lEnd, rOff, rEnd int
+				// If we have refined ends, use them.
+				if dup := f.FeatAttributes.Get("Dup"); dup != "" {
+					d, err := strconv.Atoi(dup)
+					if err != nil {
+						log.Fatalf("failed to get duplication length: %v", err)
+					}
+					lOff = max(0, start-d)
+					lEnd = start
+					rOff = end
+					rEnd = min(len(seq.Seq), end+d)
+				} else {
+					lOff = max(0, start-hw)
+					lEnd = min(len(seq.Seq), start+hw)
+					rOff = max(0, end-hw)
+					rEnd = min(len(seq.Seq), end+hw)
 
-				// Ensure windows don't overlap.
-				if lEnd > rOff {
-					lEnd = (lEnd + rOff) / 2
-					rOff = lEnd
+					// Ensure windows don't overlap.
+					if lEnd > rOff {
+						lEnd = (lEnd + rOff) / 2
+						rOff = lEnd
+					}
+				}
+
+				if lEnd-lOff < *thresh || rEnd-rOff < *thresh {
+					// Don't do fruitless work.
+					continue loop
 				}
 
 				left := *seq
