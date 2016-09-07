@@ -149,8 +149,8 @@ func main() {
 				}
 
 				fa := align.Format(&right, &left, aln, '-')
-				var n int
 				for _, seg := range fa {
+					var n int
 					for _, l := range seg.(alphabet.Letters) {
 						if l != '-' {
 							n++
