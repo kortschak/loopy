@@ -271,7 +271,8 @@ func deletions(reads, ref, suff, ext string, procs int, run bool, window, min in
 					}
 
 					// Adjust ends based on paired SW alignments.
-					d, err = br.adjust(d)
+					var refined bool
+					d, refined, err = br.adjust(d)
 					if err != nil && *verbose {
 						log.Printf("failed alignment %s: %v", d.record.Name, err)
 					}
@@ -284,7 +285,7 @@ func deletions(reads, ref, suff, ext string, procs int, run bool, window, min in
 						gf.FeatEnd++
 					}
 
-					if d.dup != 0 {
+					if refined {
 						gf.FeatAttributes = gf.FeatAttributes[:2]
 						gf.FeatAttributes[1].Value = strconv.Itoa(d.dup)
 					} else {
@@ -465,19 +466,19 @@ func makeTable(alnmat mat) align.SW {
 //  query: ------------+---+-------------+---+-----------
 //                    s-d  s             e  e+d
 //
-func (r *refiner) adjust(d deletion) (deletion, error) {
+func (r *refiner) adjust(d deletion) (refined deletion, ok bool, err error) {
 	if r == nil {
-		return d, nil
+		return d, false, nil
 	}
 	if d.qend-d.qstart < d.rend-d.rstart {
 		// Do not do any work for deletions.
-		return d, fmt.Errorf("not an insertion: len(q)=%d len(r)=%d", d.qend-d.qstart, d.rend-d.rstart)
+		return d, false, fmt.Errorf("not an insertion: len(q)=%d len(r)=%d", d.qend-d.qstart, d.rend-d.rstart)
 	}
 
 	name := d.record.Ref.Name()
 	ref, ok := r.ref[name]
 	if !ok {
-		return d, fmt.Errorf("no reference sequence for %q", name)
+		return d, false, fmt.Errorf("no reference sequence for %q", name)
 	}
 
 	rs := *ref
@@ -493,7 +494,7 @@ func (r *refiner) adjust(d deletion) (deletion, error) {
 	qsl.Seq = q[qOffLeft : (d.qstart+d.qend)/2]
 	alnl, err := r.sw.Align(&rs, qsl)
 	if err != nil {
-		return d, err
+		return d, false, err
 	}
 
 	// Align the right junction of the qeuery to
@@ -503,7 +504,7 @@ func (r *refiner) adjust(d deletion) (deletion, error) {
 	qsr.Seq = q[qOffRight:min(d.qend+r.queryWindow, len(q))]
 	alnr, err := r.sw.Align(&rs, qsr)
 	if err != nil {
-		return d, err
+		return d, false, err
 	}
 
 	// Get left and right ends of insertion in read
@@ -514,11 +515,11 @@ func (r *refiner) adjust(d deletion) (deletion, error) {
 	// Bail out if the alignment extends too far.
 	// We might have continued alignment.
 	if flank := right[0].Start(); flank < r.minRefFlank {
-		return d, fmt.Errorf("skipping: right ref flank less than %d from left: len(flank)=%v",
+		return d, false, fmt.Errorf("skipping: right ref flank less than %d from left: len(flank)=%v",
 			r.minRefFlank, flank)
 	}
 	if flank := left[0].End(); len(rs.Seq)-flank < r.minRefFlank {
-		return d, fmt.Errorf("skipping: left ref flank less than %d from right: len(flank)=%v",
+		return d, false, fmt.Errorf("skipping: left ref flank less than %d from right: len(flank)=%v",
 			r.minRefFlank, len(rs.Seq)-flank)
 	}
 
@@ -528,11 +529,11 @@ func (r *refiner) adjust(d deletion) (deletion, error) {
 	// Bail out if the insertion is too short.
 	// We might have continued alignment.
 	if gap := centrel - left[1].End(); gap < r.minQueryGap {
-		return d, fmt.Errorf("skipping left: left query gap less than %d from centre: len(gap)=%v",
+		return d, false, fmt.Errorf("skipping left: left query gap less than %d from centre: len(gap)=%v",
 			r.minQueryGap, gap)
 	}
 	if gap := right[1].Start() - centrer; gap < r.minQueryGap {
-		return d, fmt.Errorf("skipping right: right query gap less than %d from centre: len(gap)=%v",
+		return d, false, fmt.Errorf("skipping right: right query gap less than %d from centre: len(gap)=%v",
 			r.minQueryGap, gap)
 	}
 
@@ -546,7 +547,7 @@ func (r *refiner) adjust(d deletion) (deletion, error) {
 	d.qstart = qOffLeft + left[1].End()
 	d.qend = qOffRight + alnr[0].Features()[1].Start()
 
-	return d, nil
+	return d, true, nil
 }
 
 func max(a, b int) int {
