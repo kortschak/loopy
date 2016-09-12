@@ -29,13 +29,13 @@ reefer	-reads ${READPATH}/${FILES[$SLURM_ARRAY_TASK_ID]} \
 ## Obtain sequence discordances
 
 ```
-head -n 3 $(ls -1 | head -n 1) >${REEFERRESULTS}.gff
-grep --no-filename results/*gff >>${REEFERRESULTS}.gff
+head -n 3 $(ls -1 | head -n 1) results/*gff >${REEFERRESULTS}.gff
+grep --no-filename -v '^#' results/*gff >>${REEFERRESULTS}.gff
 ```
 
 This is horribly inefficient, but easy to express. A better approach is to do each invocation of wring on a distinct pair of gff/sam and concatenate the results.
 ```
-wring results/*sam <${REEFERRESULTS}.gff >LCYE01.reefer.fasta
+wring results/*sam <${REEFERRESULTS}.gff >${REEFERRESULTS}.fasta
 ```
 
 better
