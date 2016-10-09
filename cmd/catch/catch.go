@@ -47,7 +47,7 @@ func (v *mat) String() string { return fmt.Sprintf("%d,%d,%d", v[0], v[1], v[2])
 var (
 	in       = flag.String("in", "", "input gff file (required)")
 	thresh   = flag.Int("thresh", 6, "minimum TSD half alignment length (ungapped)")
-	window   = flag.Int("window", 200, "window for TSD search")
+	window   = flag.Int("window", 100, "window for TSD search")
 	fastaOut = flag.String("fasta-out", "", "write insertions to this file if option not empty")
 )
 
