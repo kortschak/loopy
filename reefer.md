@@ -40,6 +40,11 @@ wring results/*sam <${REEFERRESULTS}.gff >${REEFERRESULTS}.fasta
 
 better
 ```
+parallel 'wring {.}.blasr.sam <{} >{/.}.reefer.fasta' ::: results/*gff
+cat *.reefer.fasta >${REEFERRESULTS}.fasta && parallel 'rm -f {/.}.reefer.fasta' ::: results/*gff
+```
+or
+```
 #!/bin/bash
 #SBATCH -p batch
 #SBATCH -N 1
@@ -63,13 +68,14 @@ wring	${file}.blasr.sam \
 ## Perform name mangling
 
 ```
-mangle <LCYE01.reefer.fasta >LCYE01.reefer-mangled.fasta
+mangle <${REEFERRESULTS}.fasta >${REEFERRESULTS}-mangled.fasta
 ```
 
 ## Perform sequence bundling
 
+Get event sequences in file batches censor can handle.
 ```
-bundle -in LCYE01.reefer-mangled.fasta
+bundle -in ${REEFERRESULTS}-mangled.fasta
 ```
 
 ## Perform censor analysis of sequence discordances
@@ -80,7 +86,7 @@ Generic case:
 
 # Invoked by:
 #
-# READPATH=<read> sbatch censor-hum.q
+# EVENTSEQPATH=<eventseqs> sbatch censor-hum.q
 #
 
 #SBATCH -p cpuq
@@ -98,8 +104,8 @@ Generic case:
 
 module load wu-blast censor bioperl
 
-FILES=($(ls $READPATH/*.fa))
-censor -bprm cpus=8 -lib hum $READPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
+FILES=($(ls $EVENTSEQPATH/*.fa))
+censor -bprm cpus=8 -lib hum $EVENTSEQPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
 ```
 
 L1 case:
@@ -108,7 +114,7 @@ L1 case:
 
 # Invoked by:
 #
-# READPATH=<read> REPLIBPATH=<lib> sbatch censor-arb.q
+# EVENTSEQPATH=<eventseqs> REPLIBPATH=<lib> sbatch censor-arb.q
 #
 
 #SBATCH -p cpuq
@@ -126,26 +132,26 @@ L1 case:
 
 module load wu-blast censor bioperl
 
-FILES=($(ls $READPATH/*.fa))
-censor -bprm cpus=16 -lib ${REPLIBPATH} $READPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
+FILES=($(ls $EVENTSEQPATH/*.fa))
+censor -bprm cpus=16 -lib ${REPLIBPATH} $EVENTSEQPATH/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
 ```
 
 ## Filter events for size
 
 General case:
 ```
-awk '{if ($11 > 80 && $12 > 90) print $0;}' *map > LCYE01.reefer-mangled.all.map
+awk '{if ($11 > 80 && $12 > 90) print $0;}' *map > ${REEFERRESULTS}-mangled.all.map
 ```
 
 L1 case:
 ```
-awk '{if ($11 > 90) print $0;}' *map > LCYE01.reefer-mangled.L1.map
+awk '{if ($11 > 90) print $0;}' *map > ${REEFERRESULTS}-mangled.L1.map
 ```
 
 ## Perform name unmangling
 
 ```
-mangle -unmangle LCYE01.reefer-mangled.$TYPE.map <LCYE01.reefer-mangled.fasta > LCYE01.reefer-unmangled.$TYPE.map
+mangle -unmangle ${REEFERRESULTS}-mangled.$TYPE.map <${REEFERRESULTS}-mangled.fasta > ${REEFERRESULTS}-unmangled.$TYPE.map
 ```
 
 ## Convert to GFF
@@ -154,18 +160,18 @@ map2gff is available by invoking `go get github.com/kortschak/quilt/map2gff`.
 
 General case:
 ```
-map2gff -lib $REPLIBPATH <LCYE01.reefer-unmangled.all.map >LCYE01.reefer-unmangled.all.gff
+map2gff -lib $REPLIBPATH <${REEFERRESULTS}-unmangled.all.map >${REEFERRESULTS}-unmangled.all.gff
 ```
 
 L1 case (only allow 3' abutting elements):
 ```
-map2gff -lib $REPLIBPATH -class L1 <LCYE01.reefer-unmangled.L1.map | awk '{if ($14 < 100) print $0}' >LCYE01.reefer-unmangled.L1.gff
+map2gff -lib $REPLIBPATH -class L1 <${REEFERRESULTS}-unmangled.L1.map | awk '{if ($14 < 100) print $0}' >${REEFERRESULTS}-unmangled.L1.gff
 ```
 
 ## Integrate results
 
 ```
-rinse -in LCYE01.reefer-unmangled.$TYPE.gff -ref LYCE01.rm.gff -map LCYE01.reefer.gff -contigs LCYE01.mfa >LCYE01.reefer-unmangled-rinsed.$TYPE.gff
+rinse -in ${REEFERRESULTS}-unmangled.$TYPE.gff -ref LYCE01.rm.gff -map ${REEFERRESULTS}.gff -contigs LCYE01.mfa >${REEFERRESULTS}-unmangled-rinsed.$TYPE.gff
 ```
 
 ## Annotate repeat locations on reference
@@ -173,11 +179,11 @@ rinse -in LCYE01.reefer-unmangled.$TYPE.gff -ref LYCE01.rm.gff -map LCYE01.reefe
 Provides read provenance and accounts unique events.
 
 ```
-press -in LCYE01.reefer-unmangled-rinsed.$TYPE.gff -ref ${REEFERRESULTS}.gff -gff LCYE01.reefer-unmangled-rinsed.pressed.$TYPE.gff
+press -in ${REEFERRESULTS}-unmangled-rinsed.$TYPE.gff -ref ${REEFERRESULTS}.gff -gff ${REEFERRESULTS}-unmangled-rinsed.pressed.$TYPE.gff
 ```
 
 ## Find Target Site Duplications
 
 ```
-catch -in LCYE01.reefer-unmangled-rinsed.pressed.$TYPE.gff ${READPATH}/* > LCYE01.reefer-unmangled-rinsed.pressed.$TYPE.tsd.gff
+catch -in ${REEFERRESULTS}-unmangled-rinsed.pressed.$TYPE.gff ${READPATH}/* > ${REEFERRESULTS}-unmangled-rinsed.pressed.$TYPE.tsd.gff
 ```
