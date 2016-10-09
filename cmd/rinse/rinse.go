@@ -76,12 +76,24 @@ func main() {
 		}
 		fields := strings.Fields(repeat)
 
-		contigSide, ok := mapping[strings.Split(f.SeqName, "//")[0]]
+		name := strings.Split(f.SeqName, "//")
+		if len(name) != 2 {
+			log.Fatalf("unexpected sequence name in input: %q", f.SeqName)
+		}
+		contigSide, ok := mapping[name[0]]
 		if !ok {
 			log.Fatalf("unexpected sequence name in input: %q", f.SeqName)
 		}
-		if contigSide.FeatStart < *buf || contigLength[contigSide.SeqName]-contigSide.FeatEnd < *buf {
-			log.Printf("too close to contig end: excluding %+v", f)
+		if contigSide.FeatStart+f.FeatStart < *buf {
+			log.Printf("too close to contig start:\n\texcluding %#v\n\tcontig %#v\n\n%d < %d", f, contigSide, contigSide.FeatStart, *buf)
+			continue
+		}
+		length, ok := contigLength[contigSide.SeqName]
+		if !ok {
+			log.Fatalf("unexpected sequence name in contig mapping: %q", contigSide.SeqName)
+		}
+		if length-((contigSide.FeatEnd-contigSide.FeatStart)+f.FeatEnd) < *buf {
+			log.Printf("too close to contig end:\n\texcluding %#v\n\tcontig %#v", f, contigSide)
 			continue
 		}
 		t, ok := refTrees[contigSide.SeqName]
@@ -119,7 +131,7 @@ func main() {
 func within(buffer int, name string) (bool, error) {
 	fields := strings.Split(name, "//")
 	if len(fields) != 2 {
-		return false, fmt.Errorf("too many fields: %q", name)
+		return false, fmt.Errorf("wrong number of fields: %q", name)
 	}
 	readRangeIdx := strings.LastIndex(fields[0], "/")
 	if readRangeIdx < 0 {
