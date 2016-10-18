@@ -1,10 +1,45 @@
 # Reefer pipeline
 
+## Produce a set of repeat annotations for the genome.
+
+```
+#!/bin/bash
+
+# Invoked by:
+#
+# CONTIGS=<contigs> sbatch censor-hum.q
+#
+
+#SBATCH -p batch
+#SBATCH -N 1
+#SBATCH -n 8
+#SBATCH --time=2-00:00
+#SBATCH --mem=32GB
+
+# Notification configuration
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=email@domain.net
+
+#SBATCH --array=0-125 #result of `ls *.fa | wc -l' less one.
+
+module load wu-blast censor bioperl
+
+FILES=($(ls $CONTIGS/*.fa))
+censor -bprm cpus=8 -lib hum $CONTIGS/$(basename ${FILES[$SLURM_ARRAY_TASK_ID]})
+```
+
+Convert to RepeatMasker GFF format.
+```
+REPLIBPATH=/path/to/biolib/humrep.ref # -lib hum
+cat *map | map2gff -lib $REPLIBPATH >${GENOME}.rm.gff
+```
+
 ## Run reefer
 
 ```bash
 #!/bin/bash
-#SBATCH -p cpuq
+#SBATCH -p batch
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --time=1-00:00
@@ -29,7 +64,7 @@ reefer	-reads ${READPATH}/${FILES[$SLURM_ARRAY_TASK_ID]} \
 ## Obtain sequence discordances
 
 ```
-head -n 3 $(ls -1 | head -n 1) results/*gff >${REEFERRESULTS}.gff
+head -n 3 $(ls -1 results/*gff | head -n 1) >${REEFERRESULTS}.gff
 grep --no-filename -v '^#' results/*gff >>${REEFERRESULTS}.gff
 ```
 
@@ -54,15 +89,15 @@ or
 
 #SBATCH --mail-type=END 
 #SBATCH --mail-type=FAIL
-#SBATCH --mail-user=dan.kortschak@adelaide.edu.au
+#SBATCH --mail-user=email@domain.net
 
-#SBATCH --array=0-837 # result of `ls *fasta | wc -l' less one.
+#SBATCH --array=0-722 # result of `ls *fasta | wc -l' less one.
 
-FILES=($(ls $READPATH/*.gff))
+FILES=($(ls ${RESULTS}/*.gff))
 file=$(basename ${FILES[$SLURM_ARRAY_TASK_ID]} .gff)
-wring	${file}.blasr.sam \
-     	< ${file}.gff \
-     	> ${file}.reefer.fasta
+wring	${RESULTS}/${file}.blasr.sam \
+		< ${RESULTS}/${file}.gff \
+		> ${file}.reefer.fasta
 ```
 
 ## Perform name mangling
@@ -171,7 +206,7 @@ map2gff -lib $REPLIBPATH -class L1 <${REEFERRESULTS}-unmangled.L1.map | awk '{if
 ## Integrate results
 
 ```
-rinse -in ${REEFERRESULTS}-unmangled.$TYPE.gff -ref LYCE01.rm.gff -map ${REEFERRESULTS}.gff -contigs LCYE01.mfa >${REEFERRESULTS}-unmangled-rinsed.$TYPE.gff
+rinse -in ${REEFERRESULTS}-unmangled.$TYPE.gff -ref ${GENOME}.rm.gff -map ${REEFERRESULTS}.gff -contigs ${GENOME}.mfa >${REEFERRESULTS}-unmangled-rinsed.$TYPE.gff
 ```
 
 ## Annotate repeat locations on reference
