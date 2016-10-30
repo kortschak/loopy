@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	in     = flag.String("in", "", "specify input gff file (required)")
+	in     = flag.String("in", "", "specify input fasta file (required)")
 	thresh = flag.Float64("thresh", 6, "specify minimum total sequence complexity")
 	dist   = flag.Bool("dist", false, "only calculate complexity distribution")
 	typ    = flag.Int("type", 0, "specify complexity calculation function (0 - WF, 1 - entropic, 2 - Z)")
