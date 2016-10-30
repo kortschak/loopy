@@ -63,5 +63,4 @@ func main() {
 	if err := sc.Error(); err != nil {
 		log.Fatalf("error during fasta read: %v", err)
 	}
-	f.Close()
 }
