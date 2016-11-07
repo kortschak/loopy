@@ -44,4 +44,7 @@ func main() {
 		}
 		w.Write(f)
 	}
+	if err := sc.Error(); err != nil {
+		log.Fatalf("error during gff read: %v", err)
+	}
 }
