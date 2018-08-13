@@ -200,6 +200,7 @@ map2gff -lib $REPLIBPATH <${REEFERRESULTS}-unmangled.all.map >${REEFERRESULTS}-u
 
 L1 case (only allow 3' abutting elements):
 ```
+# Only allow repeats that are within 100bp of 3' end.
 map2gff -lib $REPLIBPATH -class L1 <${REEFERRESULTS}-unmangled.L1.map | awk '{if ($14 < 100) print $0}' >${REEFERRESULTS}-unmangled.L1.gff
 ```
 
