@@ -14,17 +14,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	"gonum.org/v1/plot/vg/draw"
+
 	"github.com/biogo/biogo/feat"
 	"github.com/biogo/biogo/feat/genome"
 	"github.com/biogo/biogo/feat/genome/human/hg19"
 	"github.com/biogo/biogo/io/featio"
 	"github.com/biogo/biogo/io/featio/bed"
 	"github.com/biogo/graphics/rings"
-
-	"github.com/gonum/plot"
-	"github.com/gonum/plot/plotter"
-	"github.com/gonum/plot/vg"
-	"github.com/gonum/plot/vg/draw"
 )
 
 var (

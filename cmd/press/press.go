@@ -12,9 +12,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gonum/graph"
-	"github.com/gonum/graph/simple"
-	"github.com/gonum/graph/topo"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/iterator"
+	"gonum.org/v1/gonum/graph/simple"
+	"gonum.org/v1/gonum/graph/topo"
 
 	"github.com/biogo/biogo/io/featio"
 	"github.com/biogo/biogo/io/featio/gff"
@@ -84,18 +85,18 @@ func main() {
 		log.Fatal("terminating")
 	}
 
-	g := thresholdGraph{UndirectedGraph: simple.NewUndirectedGraph(1, 0), thresh: *thresh}
+	g := thresholdGraph{WeightedUndirectedGraph: simple.NewWeightedUndirectedGraph(1, 0), thresh: *thresh}
 	// The sets of event are small at this stage,
 	// so we do things the naive way rather than
 	// setting up a set of interval trees.
 	for i := range v[:len(v)-1] {
 		for j := range v[i+1:] {
-			g.SetEdge(simple.Edge{F: simple.Node(i), T: simple.Node(j + i + 1), W: jaccard(v[i], v[j+i+1])})
+			g.SetWeightedEdge(simple.WeightedEdge{F: simple.Node(i), T: simple.Node(j + i + 1), W: jaccard(v[i], v[j+i+1])})
 		}
 	}
 
 	cc := topo.ConnectedComponents(g)
-	fmt.Printf("number of unique events = %d, total number of nodes = %d\n", len(cc), len(g.Nodes()))
+	fmt.Printf("number of unique events = %d, total number of nodes = %d\n", len(cc), g.Nodes().Len())
 	if *gffOut != "" {
 		gf, err := os.Create(*gffOut)
 		if err != nil {
@@ -120,7 +121,7 @@ func main() {
 		}
 		fmt.Fprintln(cf, "thresh\treduction")
 		for g.thresh = 0.05; g.thresh < 1.04; g.thresh += 0.05 {
-			fmt.Fprintf(cf, "%.2f\t%f\n", g.thresh, 1-float64(len(topo.ConnectedComponents(g)))/float64(len(g.Nodes())))
+			fmt.Fprintf(cf, "%.2f\t%f\n", g.thresh, 1-float64(len(topo.ConnectedComponents(g)))/float64(g.Nodes().Len()))
 		}
 		cf.Close()
 	}
@@ -166,29 +167,29 @@ func max(a, b int) int {
 // thesholdGraph is an undirected graph where edges must be above
 // a given threshold to be returned or traversed.
 type thresholdGraph struct {
-	*simple.UndirectedGraph
+	*simple.WeightedUndirectedGraph
 	thresh float64
 }
 
 // From returns all nodes in g that can be reached directly from n.
-func (g thresholdGraph) From(n graph.Node) []graph.Node {
-	if !g.Has(n) {
+func (g thresholdGraph) From(n int64) graph.Nodes {
+	if g.Node(n) == nil {
 		return nil
 	}
 
 	var nodes []graph.Node
-	for _, to := range g.UndirectedGraph.From(n) {
-		if g.HasEdgeBetween(n, to) {
+	for _, to := range graph.NodesOf(g.WeightedUndirectedGraph.From(n)) {
+		if g.HasEdgeBetween(n, to.ID()) {
 			nodes = append(nodes, to)
 		}
 	}
 
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // HasEdgeBetween returns whether an edge exists between nodes x and y.
-func (g thresholdGraph) HasEdgeBetween(x, y graph.Node) bool {
-	if !g.UndirectedGraph.HasEdgeBetween(x, y) {
+func (g thresholdGraph) HasEdgeBetween(x, y int64) bool {
+	if !g.WeightedUndirectedGraph.HasEdgeBetween(x, y) {
 		return false
 	}
 	w, _ := g.Weight(x, y)
@@ -197,13 +198,13 @@ func (g thresholdGraph) HasEdgeBetween(x, y graph.Node) bool {
 
 // Edge returns the edge from u to v if such an edge exists and nil otherwise.
 // The node v must be directly reachable from u as defined by the From method.
-func (g thresholdGraph) Edge(u, v graph.Node) graph.Edge {
+func (g thresholdGraph) Edge(u, v int64) graph.Edge {
 	return g.EdgeBetween(u, v)
 }
 
 // EdgeBetween returns the edge between nodes x and y.
-func (g thresholdGraph) EdgeBetween(x, y graph.Node) graph.Edge {
-	e := g.UndirectedGraph.EdgeBetween(x, y)
+func (g thresholdGraph) EdgeBetween(x, y int64) graph.Edge {
+	e := g.WeightedUndirectedGraph.EdgeBetween(x, y)
 	if e == nil {
 		return nil
 	}
