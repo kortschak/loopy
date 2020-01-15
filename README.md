@@ -3,7 +3,7 @@ It is a close run-alike to the bridgemapper tool.
 
 ## Installation
 
-loopy requires a [Go](http://golang.org) installation, and a runnable [blasr](https://github.com/PacificBiosciences/blasr) executable.
+loopy requires a [Go](http://golang.org) installation, and a runnable [blasr](https://github.com/PacificBiosciences/blasr) executable (version 5.1+).
 
 ## Documentation
 
