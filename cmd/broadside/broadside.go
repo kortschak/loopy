@@ -142,7 +142,7 @@ func (c *counter) overlapping(f *gff.Feature) (int, error) {
 	if !ok {
 		return -1, fmt.Errorf("could not find reference for %q", f.SeqName)
 	}
-	chunks, err := c.idx.Chunks(ref, max(0, f.FeatStart-1e4), min(ref.Len, f.FeatEnd+1e4))
+	chunks, err := c.idx.Chunks(ref, max(0, f.FeatStart-1e4), min(ref.Len(), f.FeatEnd+1e4))
 	if err != nil {
 		return -1, fmt.Errorf("failed to get chunks: %v", err)
 	}
