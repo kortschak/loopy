@@ -44,6 +44,9 @@ func main() {
 
 	var i, size int
 	out, err := os.Create(fmt.Sprintf("%s-%d.fa", *in, i))
+	if err != nil {
+		log.Fatalf("failed to open file bundle %d: %v", i, err)
+	}
 	for sc.Next() {
 		if sc.Seq().Len() < *cut {
 			continue
